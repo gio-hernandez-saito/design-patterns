@@ -1,14 +1,23 @@
 ---
-// 프레임워크별 코드 + 라이브 데모를 탭으로 전환하는 컴포넌트
-interface Props {
-  tabs: { id: string; label: string; code: string }[];
-  patternSlug: string;
+// 프레임워크별 코드를 탭으로 전환하는 컴포넌트 — CodeBox 통합
+import CodeBox from './CodeBox.astro';
+
+interface Tab {
+  id: string;
+  label: string;
+  filename: string;
+  code: string;      // Shiki 하이라이트된 HTML
+  rawCode: string;   // 복사용 원본 코드
 }
 
-const { tabs, patternSlug } = Astro.props;
+interface Props {
+  tabs: Tab[];
+}
+
+const { tabs } = Astro.props;
 ---
 
-<div class="fw-tabs" data-tabs>
+<div class="fw-tabs" data-fwtabs>
   <div class="tab-bar">
     {tabs.map((tab, i) => (
       <button
@@ -23,18 +32,17 @@ const { tabs, patternSlug } = Astro.props;
 
   {tabs.map((tab, i) => (
     <div class:list={['tab-panel', { active: i === 0 }]} data-panel={tab.id}>
-      <div class="code-section">
-        <div class="code-header">
-          <span class="code-lang">{tab.label}</span>
-        </div>
-        <pre><code set:html={tab.code} /></pre>
-      </div>
+      <CodeBox
+        filename={tab.filename}
+        code={tab.code}
+        rawCode={tab.rawCode}
+      />
     </div>
   ))}
 </div>
 
 <script>
-  document.querySelectorAll('[data-tabs]').forEach(container => {
+  document.querySelectorAll('[data-fwtabs]').forEach(container => {
     const buttons = container.querySelectorAll('[data-tab]');
     const panels = container.querySelectorAll('[data-panel]');
 
@@ -52,17 +60,13 @@ const { tabs, patternSlug } = Astro.props;
 
 <style>
   .fw-tabs {
-    margin: 1.5rem 0;
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
-    overflow: hidden;
-    background: var(--color-bg-secondary);
+    margin: 1rem 0;
   }
 
   .tab-bar {
     display: flex;
-    border-bottom: 1px solid var(--color-border);
-    background: var(--color-bg);
+    border-bottom: 2px solid var(--color-border);
+    margin-bottom: -1px;
   }
 
   .tab-btn {
@@ -77,13 +81,13 @@ const { tabs, patternSlug } = Astro.props;
     align-items: center;
     gap: 0.4rem;
     border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
     transition: all 0.15s;
     font-family: inherit;
   }
 
   .tab-btn:hover {
     color: var(--color-text-secondary);
-    background: rgba(255, 255, 255, 0.03);
   }
 
   .tab-btn.active {
@@ -108,31 +112,5 @@ const { tabs, patternSlug } = Astro.props;
 
   .tab-panel.active {
     display: block;
-  }
-
-  .code-section {
-    position: relative;
-  }
-
-  .code-header {
-    display: flex;
-    align-items: center;
-    padding: 0.5rem 1rem;
-    border-bottom: 1px solid var(--color-border);
-    background: var(--color-bg-code);
-  }
-
-  .code-lang {
-    font-size: 0.75rem;
-    color: var(--color-text-muted);
-    font-weight: 500;
-  }
-
-  pre {
-    margin: 0;
-    border: none;
-    border-radius: 0;
-    max-height: 600px;
-    overflow-y: auto;
   }
 </style>

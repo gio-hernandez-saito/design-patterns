@@ -1,6 +1,6 @@
 # Design Patterns
 
-GoF 23개 디자인 패턴을 **TypeScript**, **React**, **Vue**, **Svelte**로 구현한 학습 & 포트폴리오 프로젝트.
+GoF 23개 디자인 패턴을 **TypeScript**, **React**, **Vue**, **Svelte**로 구현한 학습 프로젝트.
 
 ## Why?
 
