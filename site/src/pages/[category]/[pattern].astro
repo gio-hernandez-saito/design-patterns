@@ -1,0 +1,360 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import FrameworkTabs from '../../components/FrameworkTabs.astro';
+import { patterns, categories } from '../../data/patterns';
+import fs from 'node:fs';
+import path from 'node:path';
+import { highlight } from '../../utils/highlight';
+
+// 동적 라우팅: 23개 패턴 각각에 대해 정적 경로 생성
+export function getStaticPaths() {
+  return patterns.map(p => ({
+    params: { category: p.category, pattern: p.slug },
+    props: { pattern: p },
+  }));
+}
+
+const { pattern } = Astro.props;
+const cat = categories.find(c => c.id === pattern.category)!;
+
+// ── 파일 읽기 유틸 ──
+const patternsRoot = path.resolve('..', 'patterns', pattern.category, pattern.slug);
+
+function readFile(filePath: string): string | null {
+  try {
+    return fs.readFileSync(filePath, 'utf-8');
+  } catch {
+    return null;
+  }
+}
+
+// ── README 읽기 (프레임워크 비교 섹션 포함) ──
+const readme = readFile(path.join(patternsRoot, 'README.md')) ?? '';
+
+// ── 소스 코드 읽기 ──
+const tsFile = fs.readdirSync(path.join(patternsRoot, 'typescript'))
+  .find(f => f.endsWith('.ts') && !f.endsWith('.test.ts'));
+const tsCode = tsFile ? readFile(path.join(patternsRoot, 'typescript', tsFile)) : null;
+const tsTestFile = fs.readdirSync(path.join(patternsRoot, 'typescript'))
+  .find(f => f.endsWith('.test.ts'));
+const tsTestCode = tsTestFile ? readFile(path.join(patternsRoot, 'typescript', tsTestFile)) : null;
+
+// 프레임워크 코드 읽기
+const fwCodeMap: Record<string, { file: string; code: string }> = {};
+for (const fw of pattern.frameworks) {
+  const fwDir = path.join(patternsRoot, fw);
+  if (!fs.existsSync(fwDir)) continue;
+  const files = fs.readdirSync(fwDir);
+  const mainFile = files.find(f =>
+    f === 'App.tsx' || f === 'App.vue' || f === 'App.svelte'
+  );
+  if (mainFile) {
+    const code = readFile(path.join(fwDir, mainFile));
+    if (code) fwCodeMap[fw] = { file: mainFile, code };
+  }
+}
+
+// 하이라이트된 코드 준비 (싱글턴 하이라이터 사용)
+const tsHighlighted = tsCode ? await highlight(tsCode, 'typescript') : '';
+const tsTestHighlighted = tsTestCode ? await highlight(tsTestCode, 'typescript') : '';
+
+// 프레임워크 탭 데이터 준비
+const fwTabs = [];
+if (tsCode) {
+  fwTabs.push({ id: 'typescript', label: 'TypeScript', code: tsHighlighted });
+}
+for (const fw of pattern.frameworks) {
+  const entry = fwCodeMap[fw];
+  if (!entry) continue;
+  const lang = fw === 'react' ? 'tsx' : fw === 'vue' ? 'vue' : 'svelte';
+  const label = fw === 'react' ? 'React' : fw === 'vue' ? 'Vue' : 'Svelte';
+  fwTabs.push({
+    id: fw,
+    label,
+    code: await highlight(entry.code, lang),
+  });
+}
+
+// ── README에서 섹션 파싱 ──
+// Mermaid 다이어그램 추출
+const mermaidMatch = readme.match(/```mermaid\n([\s\S]*?)```/);
+const mermaidCode = mermaidMatch ? mermaidMatch[1].trim() : null;
+
+// README에서 주요 섹션 추출
+function extractSection(md: string, heading: string): string | null {
+  const regex = new RegExp(`## ${heading}[\\s\\S]*?\\n([\\s\\S]*?)(?=\\n## |$)`);
+  const match = md.match(regex);
+  return match ? match[1].trim() : null;
+}
+
+const intentSection = extractSection(readme, '의도 \\(Intent\\)');
+const conceptSection = extractSection(readme, '핵심 개념');
+const useCaseSection = extractSection(readme, '실무 사용 사례');
+const prosConsSection = extractSection(readme, '장단점');
+
+// 패턴 간 네비게이션
+const currentIndex = patterns.findIndex(p => p.slug === pattern.slug);
+const prevPattern = currentIndex > 0 ? patterns[currentIndex - 1] : null;
+const nextPattern = currentIndex < patterns.length - 1 ? patterns[currentIndex + 1] : null;
+const base = import.meta.env.BASE_URL;
+---
+
+<Layout title={pattern.name} activePattern={pattern.slug}>
+  <div class="pattern-header">
+    <span class="pattern-badge" style={`background: ${cat.color}20; color: ${cat.color}`}>
+      {cat.name} · {cat.nameKo}
+    </span>
+    <h1>{pattern.name}</h1>
+    <p class="pattern-desc">{pattern.description}</p>
+    <div class="pattern-fw-badges">
+      <span class="fw-badge ts">TypeScript</span>
+      {pattern.frameworks.map(fw => (
+        <span class={`fw-badge ${fw}`}>
+          {fw === 'react' ? 'React' : fw === 'vue' ? 'Vue' : 'Svelte'}
+        </span>
+      ))}
+    </div>
+  </div>
+
+  {/* 의도 */}
+  {intentSection && (
+    <section class="section">
+      <h2>의도 (Intent)</h2>
+      <div class="markdown-body" set:html={intentSection
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`(.*?)`/g, '<code>$1</code>')
+        .replace(/^- (.*)/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+      } />
+    </section>
+  )}
+
+  {/* 구조 다이어그램 */}
+  {mermaidCode && (
+    <section class="section">
+      <h2>구조 다이어그램</h2>
+      <div class="mermaid-container">
+        <pre class="mermaid">{mermaidCode}</pre>
+      </div>
+    </section>
+  )}
+
+  {/* 코드 탭 */}
+  {fwTabs.length > 0 && (
+    <section class="section">
+      <h2>구현 코드</h2>
+      <FrameworkTabs tabs={fwTabs} patternSlug={pattern.slug} />
+    </section>
+  )}
+
+  {/* 테스트 코드 */}
+  {tsTestHighlighted && (
+    <section class="section">
+      <h2>테스트 코드</h2>
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="code-block-lang">TypeScript Test</span>
+        </div>
+        <div set:html={tsTestHighlighted} />
+      </div>
+    </section>
+  )}
+
+  {/* 실무 사용 사례 */}
+  {useCaseSection && (
+    <section class="section">
+      <h2>실무 사용 사례</h2>
+      <div class="markdown-body" set:html={useCaseSection
+        .replace(/\|(.*)\|/g, (match) => match)
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`(.*?)`/g, '<code>$1</code>')
+      } />
+    </section>
+  )}
+
+  {/* 장단점 */}
+  {prosConsSection && (
+    <section class="section">
+      <h2>장단점</h2>
+      <div class="markdown-body" set:html={prosConsSection
+        .replace(/### (.*)/g, '<h3>$1</h3>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`(.*?)`/g, '<code>$1</code>')
+        .replace(/^- (.*)/gm, '<li>$1</li>')
+      } />
+    </section>
+  )}
+
+  {/* 네비게이션 */}
+  <nav class="pattern-nav">
+    {prevPattern ? (
+      <a href={`${base}${prevPattern.category}/${prevPattern.slug}/`} class="nav-link nav-prev">
+        <span class="nav-dir">← 이전</span>
+        <span class="nav-name">{prevPattern.name}</span>
+      </a>
+    ) : <div />}
+    {nextPattern ? (
+      <a href={`${base}${nextPattern.category}/${nextPattern.slug}/`} class="nav-link nav-next">
+        <span class="nav-dir">다음 →</span>
+        <span class="nav-name">{nextPattern.name}</span>
+      </a>
+    ) : <div />}
+  </nav>
+</Layout>
+
+{/* Mermaid 렌더링 스크립트 */}
+<script>
+  import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs').then(m => {
+    m.default.initialize({ startOnLoad: true, theme: 'dark' });
+  });
+</script>
+
+<style>
+  .pattern-header {
+    margin-bottom: 2rem;
+  }
+
+  .pattern-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    margin-bottom: 0.75rem;
+  }
+
+  .pattern-header h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .pattern-desc {
+    color: var(--color-text-secondary);
+    font-size: 1.05rem;
+    margin: 0;
+  }
+
+  .pattern-fw-badges {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 1rem;
+  }
+
+  .fw-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+  }
+
+  .fw-badge.ts { background: #1e3a5f; color: #60a5fa; }
+  .fw-badge.react { background: #164e63; color: #22d3ee; }
+  .fw-badge.vue { background: #14532d; color: #4ade80; }
+  .fw-badge.svelte { background: #7f1d1d; color: #f87171; }
+
+  .section {
+    margin-bottom: 2.5rem;
+  }
+
+  .section h2 {
+    font-size: 1.35rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .markdown-body {
+    color: var(--color-text-secondary);
+    line-height: 1.8;
+  }
+
+  .markdown-body :global(strong) {
+    color: var(--color-text);
+  }
+
+  .markdown-body :global(ul) {
+    padding-left: 1.25rem;
+  }
+
+  .markdown-body :global(li) {
+    margin: 0.35rem 0;
+  }
+
+  .mermaid-container {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1.5rem;
+    overflow-x: auto;
+  }
+
+  .mermaid-container :global(.mermaid) {
+    background: #fff;
+    display: flex;
+    justify-content: center;
+  }
+
+  .code-block {
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .code-block-header {
+    padding: 0.5rem 1rem;
+    background: var(--color-bg-code);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .code-block-lang {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+  }
+
+  .code-block :global(pre) {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    max-height: 500px;
+    overflow-y: auto;
+  }
+
+  .pattern-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .nav-link {
+    display: flex;
+    flex-direction: column;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    transition: all 0.2s;
+    min-width: 160px;
+  }
+
+  .nav-link:hover {
+    border-color: var(--color-accent);
+    background: rgba(56, 189, 248, 0.05);
+  }
+
+  .nav-next {
+    text-align: right;
+    margin-left: auto;
+  }
+
+  .nav-dir {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  .nav-name {
+    font-weight: 600;
+    color: var(--color-text);
+    font-size: 0.9rem;
+  }
+</style>

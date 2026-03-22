@@ -1,0 +1,138 @@
+---
+// 프레임워크별 코드 + 라이브 데모를 탭으로 전환하는 컴포넌트
+interface Props {
+  tabs: { id: string; label: string; code: string }[];
+  patternSlug: string;
+}
+
+const { tabs, patternSlug } = Astro.props;
+---
+
+<div class="fw-tabs" data-tabs>
+  <div class="tab-bar">
+    {tabs.map((tab, i) => (
+      <button
+        class:list={['tab-btn', { active: i === 0 }]}
+        data-tab={tab.id}
+      >
+        <span class={`tab-dot tab-dot-${tab.id}`} />
+        {tab.label}
+      </button>
+    ))}
+  </div>
+
+  {tabs.map((tab, i) => (
+    <div class:list={['tab-panel', { active: i === 0 }]} data-panel={tab.id}>
+      <div class="code-section">
+        <div class="code-header">
+          <span class="code-lang">{tab.label}</span>
+        </div>
+        <pre><code set:html={tab.code} /></pre>
+      </div>
+    </div>
+  ))}
+</div>
+
+<script>
+  document.querySelectorAll('[data-tabs]').forEach(container => {
+    const buttons = container.querySelectorAll('[data-tab]');
+    const panels = container.querySelectorAll('[data-panel]');
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = (btn as HTMLElement).dataset.tab;
+        buttons.forEach(b => b.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        container.querySelector(`[data-panel="${target}"]`)?.classList.add('active');
+      });
+    });
+  });
+</script>
+
+<style>
+  .fw-tabs {
+    margin: 1.5rem 0;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--color-bg-secondary);
+  }
+
+  .tab-bar {
+    display: flex;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg);
+  }
+
+  .tab-btn {
+    padding: 0.6rem 1.25rem;
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  .tab-btn:hover {
+    color: var(--color-text-secondary);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .tab-btn.active {
+    color: var(--color-text);
+    border-bottom-color: var(--color-accent);
+  }
+
+  .tab-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .tab-dot-typescript { background: #3178c6; }
+  .tab-dot-react { background: #61dafb; }
+  .tab-dot-vue { background: #42b883; }
+  .tab-dot-svelte { background: #ff3e00; }
+
+  .tab-panel {
+    display: none;
+  }
+
+  .tab-panel.active {
+    display: block;
+  }
+
+  .code-section {
+    position: relative;
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-code);
+  }
+
+  .code-lang {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+  }
+
+  pre {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    max-height: 600px;
+    overflow-y: auto;
+  }
+</style>
