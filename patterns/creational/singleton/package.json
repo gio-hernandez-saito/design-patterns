@@ -1,0 +1,5 @@
+{
+  "name": "@patterns/singleton",
+  "private": true,
+  "type": "module"
+}

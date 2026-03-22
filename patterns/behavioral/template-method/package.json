@@ -1,0 +1,5 @@
+{
+  "name": "@patterns/template-method",
+  "private": true,
+  "type": "module"
+}

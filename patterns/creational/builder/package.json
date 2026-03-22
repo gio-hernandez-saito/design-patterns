@@ -1,0 +1,5 @@
+{
+  "name": "@patterns/builder",
+  "private": true,
+  "type": "module"
+}

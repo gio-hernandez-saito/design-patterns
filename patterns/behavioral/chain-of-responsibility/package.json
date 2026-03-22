@@ -1,0 +1,5 @@
+{
+  "name": "@patterns/chain-of-responsibility",
+  "private": true,
+  "type": "module"
+}

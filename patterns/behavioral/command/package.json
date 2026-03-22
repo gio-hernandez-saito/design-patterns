@@ -1,0 +1,5 @@
+{
+  "name": "@patterns/command",
+  "private": true,
+  "type": "module"
+}

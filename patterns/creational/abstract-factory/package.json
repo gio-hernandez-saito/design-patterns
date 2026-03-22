@@ -1,0 +1,5 @@
+{
+  "name": "@patterns/abstract-factory",
+  "private": true,
+  "type": "module"
+}

@@ -1,0 +1,5 @@
+{
+  "name": "@patterns/state",
+  "private": true,
+  "type": "module"
+}
