@@ -6,6 +6,7 @@ import svelte from '@astrojs/svelte';
 export default defineConfig({
   site: 'https://gio-hernandez-saito.github.io',
   base: '/design-patterns',
+  trailingSlash: 'always',
   integrations: [
     react(),
     vue(),
