@@ -32,16 +32,27 @@ function readFile(filePath: string): string | null {
 // ── README 읽기 ──
 const readme = readFile(path.join(patternsRoot, 'README.md')) ?? '';
 
-// Mermaid 다이어그램을 인라인 HTML로 변환 (marked가 건드리지 않도록)
-const readmeWithMermaidHtml = readme.replace(
+// Mermaid 다이어그램을 marked 처리 전에 플레이스홀더로 교체
+// (marked가 Mermaid 구문을 HTML 이스케이프하거나 <pre><code>로 감싸는 것을 방지)
+const mermaidBlocks: string[] = [];
+const readmeWithPlaceholders = readme.replace(
   /```mermaid\n([\s\S]*?)```/g,
-  (_match, code) =>
-    `<div class="mermaid-container"><pre class="mermaid">${code.trim()}</pre></div>`
+  (_match, code) => {
+    mermaidBlocks.push(code.trim());
+    return `MERMAIDBLOCK${mermaidBlocks.length - 1}END`;
+  }
 );
 
 // README를 HTML로 변환 (h1 제목은 이미 헤더에 표시하므로 제거)
-const readmeWithoutTitle = readmeWithMermaidHtml.replace(/^# .+\n+/, '');
-const readmeHtml = await marked.parse(readmeWithoutTitle);
+const readmeWithoutTitle = readmeWithPlaceholders.replace(/^# .+\n+/, '');
+let readmeHtml = await marked.parse(readmeWithoutTitle);
+
+// 플레이스홀더를 실제 Mermaid HTML로 교체 (marked 처리 후이므로 이스케이프 없음)
+readmeHtml = readmeHtml.replace(
+  /<p>MERMAIDBLOCK(\d+)END<\/p>/g,
+  (_match, index) =>
+    `<div class="mermaid-container"><pre class="mermaid">${mermaidBlocks[Number(index)]}</pre></div>`
+);
 
 // ── 소스 코드 읽기 ──
 const tsFile = fs.readdirSync(path.join(patternsRoot, 'typescript'))
