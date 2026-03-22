@@ -32,15 +32,15 @@ function readFile(filePath: string): string | null {
 // ── README 읽기 ──
 const readme = readFile(path.join(patternsRoot, 'README.md')) ?? '';
 
-// Mermaid 다이어그램 추출 (marked 렌더링 전에 분리)
-const mermaidBlocks: string[] = [];
-const readmeWithoutMermaid = readme.replace(/```mermaid\n([\s\S]*?)```/g, (_match, code) => {
-  mermaidBlocks.push(code.trim());
-  return `<div class="mermaid-placeholder" data-index="${mermaidBlocks.length - 1}"></div>`;
-});
+// Mermaid 다이어그램을 인라인 HTML로 변환 (marked가 건드리지 않도록)
+const readmeWithMermaidHtml = readme.replace(
+  /```mermaid\n([\s\S]*?)```/g,
+  (_match, code) =>
+    `<div class="mermaid-container"><pre class="mermaid">${code.trim()}</pre></div>`
+);
 
 // README를 HTML로 변환 (h1 제목은 이미 헤더에 표시하므로 제거)
-const readmeWithoutTitle = readmeWithoutMermaid.replace(/^# .+\n+/, '');
+const readmeWithoutTitle = readmeWithMermaidHtml.replace(/^# .+\n+/, '');
 const readmeHtml = await marked.parse(readmeWithoutTitle);
 
 // ── 소스 코드 읽기 ──
@@ -111,17 +111,8 @@ const base = import.meta.env.BASE_URL;
     </div>
   </div>
 
-  {/* README 콘텐츠 (테이블, 리스트 등 마크다운 완전 렌더링) */}
+  {/* README 콘텐츠 (테이블, 리스트, Mermaid 다이어그램 모두 인라인) */}
   <div class="markdown-body" set:html={readmeHtml} />
-
-  {/* Mermaid 다이어그램 */}
-  {mermaidBlocks.map(code => (
-    <section class="section">
-      <div class="mermaid-container">
-        <pre class="mermaid">{code}</pre>
-      </div>
-    </section>
-  ))}
 
   {/* 코드 탭 */}
   {fwTabs.length > 0 && (
@@ -164,18 +155,31 @@ const base = import.meta.env.BASE_URL;
 {/* Mermaid 렌더링 스크립트 */}
 <script>
   async function initMermaid() {
-    const mermaidModule = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
-    mermaidModule.default.initialize({
-      startOnLoad: false,
-      theme: 'default',
-      themeVariables: {
-        fontSize: '14px',
-      },
-    });
-    // mermaid 블록을 찾아서 렌더링
     const elements = document.querySelectorAll('.mermaid');
-    if (elements.length > 0) {
+    if (elements.length === 0) return;
+
+    try {
+      const mermaidModule = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
+      mermaidModule.default.initialize({
+        startOnLoad: false,
+        theme: 'default',
+        themeVariables: {
+          fontSize: '14px',
+          fontFamily: 'Inter, sans-serif',
+        },
+        securityLevel: 'loose',
+      });
       await mermaidModule.default.run({ nodes: elements });
+      // 렌더링 성공 시 컨테이너 표시
+      document.querySelectorAll('.mermaid-container').forEach(el => {
+        el.classList.add('rendered');
+      });
+    } catch (e) {
+      // CDN 로드 실패 시 코드 텍스트라도 보여주기
+      console.warn('Mermaid load failed:', e);
+      document.querySelectorAll('.mermaid-container').forEach(el => {
+        el.classList.add('fallback');
+      });
     }
   }
   initMermaid();
@@ -329,22 +333,55 @@ const base = import.meta.env.BASE_URL;
   }
 
   /* Mermaid 다이어그램 */
-  .mermaid-container {
+  .markdown-body :global(.mermaid-container) {
     background: #ffffff;
     border-radius: 10px;
     padding: 1.5rem;
     overflow-x: auto;
-    margin: 1rem 0;
+    margin: 1.5rem 0;
+    min-height: 80px;
+    position: relative;
   }
 
-  .mermaid-container :global(.mermaid) {
+  /* 렌더링 전: 로딩 상태 */
+  .markdown-body :global(.mermaid-container:not(.rendered):not(.fallback))::after {
+    content: '다이어그램 로딩 중...';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #94a3b8;
+    font-size: 0.85rem;
+  }
+
+  .markdown-body :global(.mermaid-container:not(.rendered):not(.fallback) .mermaid) {
+    visibility: hidden;
+  }
+
+  /* 렌더링 성공 */
+  .markdown-body :global(.mermaid-container.rendered .mermaid) {
+    visibility: visible;
     display: flex;
     justify-content: center;
   }
 
-  .mermaid-container :global(.mermaid svg) {
+  .markdown-body :global(.mermaid-container .mermaid svg) {
     max-width: 100%;
     height: auto;
+  }
+
+  /* 렌더링 실패: 코드 텍스트 가시성 확보 */
+  .markdown-body :global(.mermaid-container.fallback) {
+    background: var(--color-bg-code);
+    border: 1px solid var(--color-border);
+  }
+
+  .markdown-body :global(.mermaid-container.fallback .mermaid) {
+    visibility: visible;
+    color: var(--color-text-secondary);
+    font-family: 'Fira Code', monospace;
+    font-size: 0.8rem;
+    white-space: pre;
   }
 
   /* 코드 블록 */
