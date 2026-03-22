@@ -92,9 +92,9 @@ design-patterns/
 
 ## 진행 상태
 
-- [ ] Creational (0/5)
-- [ ] Structural (0/7)
-- [ ] Behavioral (0/11)
+- [x] Creational (5/5)
+- [x] Structural (7/7)
+- [x] Behavioral (11/11)
 
 ## 사용법
 

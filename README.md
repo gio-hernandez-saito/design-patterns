@@ -24,39 +24,39 @@ GoF 23개 디자인 패턴을 **TypeScript**, **React**, **Vue**, **Svelte**로 
 
 | 패턴             | TS | React | Vue | Svelte |
 |------------------|:--:|:-----:|:---:|:------:|
-| Singleton        |    |       |     |        |
-| Factory Method   |    |       |     |        |
-| Abstract Factory |    |  -    |  -  |   -    |
-| Builder          |    |       |     |        |
-| Prototype        |    |  -    |  -  |   -    |
+| Singleton        | ✅ | ✅    | ✅  | ✅     |
+| Factory Method   | ✅ | ✅    | ✅  | ✅     |
+| Abstract Factory | ✅ |  -    |  -  |   -    |
+| Builder          | ✅ | ✅    | ✅  | ✅     |
+| Prototype        | ✅ |  -    |  -  |   -    |
 
 ### Structural (구조)
 
 | 패턴      | TS | React | Vue | Svelte |
 |-----------|:--:|:-----:|:---:|:------:|
-| Adapter   |    |       |     |        |
-| Bridge    |    |  -    |  -  |   -    |
-| Composite |    |       |     |        |
-| Decorator |    |       |     |        |
-| Facade    |    |       |     |        |
-| Flyweight |    |  -    |  -  |   -    |
-| Proxy     |    |       |     |        |
+| Adapter   | ✅ | ✅    | ✅  | ✅     |
+| Bridge    | ✅ |  -    |  -  |   -    |
+| Composite | ✅ | ✅    | ✅  | ✅     |
+| Decorator | ✅ | ✅    | ✅  | ✅     |
+| Facade    | ✅ | ✅    | ✅  | ✅     |
+| Flyweight | ✅ |  -    |  -  |   -    |
+| Proxy     | ✅ | ✅    | ✅  | ✅     |
 
 ### Behavioral (행위)
 
 | 패턴                    | TS | React | Vue | Svelte |
 |-------------------------|:--:|:-----:|:---:|:------:|
-| Observer                |    |       |     |        |
-| Strategy                |    |       |     |        |
-| Command                 |    |       |     |        |
-| Chain of Responsibility |    |       |     |        |
-| State                   |    |       |     |        |
-| Template Method         |    |       |     |        |
-| Mediator                |    |       |     |        |
-| Iterator                |    |  -    |  -  |   -    |
-| Memento                 |    |  -    |  -  |   -    |
-| Visitor                 |    |  -    |  -  |   -    |
-| Interpreter             |    |  -    |  -  |   -    |
+| Observer                | ✅ | ✅    | ✅  | ✅     |
+| Strategy                | ✅ | ✅    | ✅  | ✅     |
+| Command                 | ✅ | ✅    | ✅  | ✅     |
+| Chain of Responsibility | ✅ | ✅    | ✅  | ✅     |
+| State                   | ✅ | ✅    | ✅  | ✅     |
+| Template Method         | ✅ | ✅    | ✅  | ✅     |
+| Mediator                | ✅ | ✅    | ✅  | ✅     |
+| Iterator                | ✅ |  -    |  -  |   -    |
+| Memento                 | ✅ |  -    |  -  |   -    |
+| Visitor                 | ✅ |  -    |  -  |   -    |
+| Interpreter             | ✅ |  -    |  -  |   -    |
 
 > `-` = 해당 프레임워크 버전 불필요 (TS only)
 
